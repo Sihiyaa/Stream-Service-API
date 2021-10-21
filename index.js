@@ -56,7 +56,7 @@ exports.handler = async function(event) {
     const requestBody = JSON.parse(event.body);
   
     const params = {
-      TableName: userStreams,
+      TableName: dynamodbTableName,
       ProjectionExpression: "#uid",
       FilterExpression: "#uid = :uid",
       ExpressionAttributeNames: {
@@ -75,10 +75,10 @@ exports.handler = async function(event) {
     if (!stream.userId) {
       callback(null, response(400, { error: "Request missing userId" }));
     } else {
-      return db.scan(params, (error, data) => {
+      return DynamoDB.scan(params, (error, data) => {
         if (data.Items.length < 3) {
-          db.put({
-            TableName: userStreams,
+          dyna.put({
+            TableName: dynamodbTableName,
             Item: stream,
           })
             .promise()
