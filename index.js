@@ -77,7 +77,7 @@ exports.handler = async function(event) {
     } else {
       return DynamoDB.scan(params, (error, data) => {
         if (data.Items.length < 3) {
-          dyna.put({
+          DynamoDB.put({
             TableName: dynamodbTableName,
             Item: stream,
           })
