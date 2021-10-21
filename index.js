@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const { response } = require('express');
 const { v4: uuidv4 } = require("uuid");
 const { logStream } = require('./Stream-Service-API/newStreamLog');
 
@@ -40,7 +41,7 @@ exports.handler = async function(event) {
 
     }
 
-//defins the functions
+//defines the functions
  function buildResponse(statusCode,body) {
     return{
         statusCode : statusCode,
@@ -50,27 +51,33 @@ exports.handler = async function(event) {
         body: JSON.stringify(body)
     }
 }
-async function checkStream(streamId)  {
 
+ async function checkStream (event, context, callback)  {
+    const requestBody = JSON.parse(event.body);
+  
     const params = {
       TableName: dynamodbTableName,
-      Key: {
-          'streamId': streamId
-      }
-    }
-
+      ProjectionExpression: "#uid",
+      FilterExpression: "#uid = :uid",
+      ExpressionAttributeNames: {
+        "#uid": "userId"
+      },
+      ExpressionAttributeValues: {
+        ":uid": requestBody.userId,
+      },
+    };
   
     const stream = {
-      streamId: streamId,
+      streamId: uuidv4(),
       userId: requestBody.userId,
     };
   
     if (!stream.userId) {
       callback(null, response(400, { error: "Request missing userId" }));
     } else {
-      return dynamodbTableName.scan(params, (error, data) => {
+      return DynamoDB.scan(params, (error, data) => {
         if (data.Items.length < 3) {
-          dynamodbTableName.put({
+          DynamoDB.put({
             TableName: dynamodbTableName,
             Item: stream,
           })
@@ -91,5 +98,23 @@ async function checkStream(streamId)  {
         }
       });
     }
-  };
-  
+  }
+  async function deleteStream(streamId) {
+      const params = {
+    TableName: dynamodbTableName,
+    Key: {
+        'streamId': streamId
+    },
+    ReturnValues: 'ALL_OLD'
+}
+return await DynamoDB.delete(params).promise().then((response )=> {
+    const body = {
+        Operation: 'DELETE',
+        Message: 'SUCCESS',
+        Item: response
+    }
+    return buildResponse(200,body);
+},(error) => {
+console.error('Error deleting',error);
+});
+  }
