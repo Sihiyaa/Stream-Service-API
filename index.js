@@ -99,7 +99,7 @@ exports.handler = async function(event) {
       });
     }
   }
-  async function deleteStream(stream) {
+  async function deleteStream(streamId) {
       const params = {
     TableName: dynamodbTableName,
     Key: {
